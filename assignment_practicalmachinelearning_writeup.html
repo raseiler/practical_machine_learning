@@ -1,0 +1,215 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+<HEAD>
+	<META HTTP-EQUIV="CONTENT-TYPE" CONTENT="text/html; charset=utf-8">
+	<TITLE></TITLE>
+	<META NAME="GENERATOR" CONTENT="LibreOffice 4.1.6.2 (Linux)">
+	<META NAME="AUTHOR" CONTENT="ralf seiler">
+	<META NAME="CREATED" CONTENT="20150125;230942787237457">
+	<META NAME="CHANGEDBY" CONTENT="ralf seiler">
+	<META NAME="CHANGED" CONTENT="20150126;4730442548664">
+	<STYLE TYPE="text/css">
+	<!--
+		@page { margin-left: 2cm; margin-right: 1.5cm; margin-top: 1.5cm; margin-bottom: 1.3cm }
+		P { margin-bottom: 0.21cm }
+		A:link { so-language: zxx }
+	-->
+	</STYLE>
+</HEAD>
+<BODY LANG="de-DE" DIR="LTR">
+<P ALIGN=CENTER STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif"><FONT SIZE=4 STYLE="font-size: 16pt"><B>Practical
+Machine Learning  - Prediction Assignment Writeup - </B></FONT></FONT>
+</P>
+<P ALIGN=CENTER STYLE="margin-top: 0.3cm; margin-bottom: 0cm"><FONT FACE="Times New Roman, serif"><B>Background</B></FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">Using
+devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now
+possible to collect a large amount of data about personal activity
+relatively inexpensively. These type of Practical Machine Learning
+| Coursera devices are part of the quantified self movement – a
+group of enthusiasts who take measurements about themselves
+<A HREF="https://class.coursera.org/predmachlearn-010/human_grading/view/cour">https://class.coursera.org/predmachlearn-010/human_grading/view/cour</A>...</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">regularly
+to improve their health, to find patterns in their behavior, or
+because they are tech geeks. One thing that people regularly do is
+quantify how much of a particular activity they do, but they rarely
+quantify how well they do it. In this project, your goal will be to
+use data from accelerometers on the belt, forearm, arm, and dumbell
+of 6 participants. They were asked to perform barbell lifts correctly
+and incorrectly in 5 different ways. More information is available
+from the website here: http://groupware.les.inf.puc-rio.br/har
+(http://groupware.les.inf.pucrio.br/har) (see the section on the
+Weight Lifting Exercise Dataset).</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif"><B>The
+dependent variable or response is the “classe” variable in the
+training set. </B></FONT>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">I
+analysed for this assignment the provided dataset
+(„pml-training.csv“) to determine what activity an individual
+performs. Therefore I used the packages 'caret' and 'randomForest'. I
+got correct answers for all 20 test data cases provided in the
+dataset („pml-testing.csv“). I used a seed value to generate
+consistent results (set.seed(512)).</FONT></P>
+<P ALIGN=CENTER STYLE="margin-top: 0.3cm; margin-bottom: 0cm"><FONT FACE="Times New Roman, serif"><B>First
+step, importing data</B></FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">First,
+I loaded the data for the training and test datasets provided by
+COURSERA. Some values contained a &quot;#DIV/0!&quot;, or „NA“,
+or might be even missing („NULL“ or „“). I replaced these
+observations with an NA value. be importing them</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">training
+&lt;- read.csv(&quot;pml-training.csv&quot;, header=T,
+na.strings=c(&quot;#DIV/0!&quot;, &quot;&quot;, &quot;NULL&quot;,
+&quot;NA&quot;))</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">evaluation
+&lt;- read.csv(&quot;pml-testing.csv&quot;, header=T,
+na.strings=c(&quot;#DIV/0!&quot;, &quot;&quot;, &quot;NULL&quot;,
+&quot;NA&quot;))</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">Both
+data contain 160 variables. The training set consists of 19622
+observations and the evaluation set has 20 obs. As most of the
+variable columns show many missing values (NA), I did a cleaning of
+the data first.</FONT></P>
+<P ALIGN=CENTER STYLE="margin-top: 0.3cm; margin-bottom: 0cm"><FONT FACE="Times New Roman, serif"><B>Screening
+the data for eliminating non-usable columns</B></FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">Those
+columns in the orignal training and testing datasets that have
+missing values are removed. To do this, I counted the number of
+missing values in each column of the full training dataset. As next
+step, I created a logical variable for each column of the dataset
+(collog_training). Its value is 'TRUE' if a column has no missing
+values (colSums == 0). Otherwise, if there are missing values in the
+column, the value corresponding to that column will be 'FALSE'.</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">colcheck_training
+&lt;- colSums(is.na(training))</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">collog_training
+&lt;- (colcheck_training == 0)</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">Applying
+the logical variable to the columns of the training and testing
+datasets keeps only those columns that have completely valid
+observations. The updated training dataset now has only 60 variables
+left to review in the analysis. Furthermore, the final testing
+dataset has consistent columns to the slimmed-down training data.
+This is necessary for applying the fitted model, that is based on the
+training data, to the testing data.</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">training_complete
+&lt;- training[, collog_training]</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">evaluation_complete
+&lt;- evaluation[, collog_training]</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">I
+also casted all columns 8 to the end to be numeric.</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">for(i
+in c(8:ncol(training_complete)-1)) {training_complete[,i] =
+as.numeric(as.character(training_complete[,i]))}</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">for(i
+in c(8:ncol(evaluation_complete)-1)) {evaluation_complete[,i] =
+as.numeric(as.character(evaluation_complete[,i]))}</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">At
+last, I removed the columns about user, timestamp and new_window as
+they are not useful for the prediction. This is done by the logical
+vector that is generated by the grepl-function. These columns have
+value 'TRUE' in the logical vector. Since I want to remove these
+columns, I apply the negation of the logical vector against the
+columns of the dataset (training and evaluation). </FONT>
+</P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">del_cols_log
+&lt;- grepl(&quot;X|user_name|timestamp|new_window&quot;,
+colnames(training_complete))</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">summary(del_cols_log)</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">feature_set
+&lt;- training_complete[, !del_cols_log]</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">eval_final
+&lt;- evaluation_complete[, !del_cols_log]</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">After
+this last step of data screening, I have a training set with 19622
+observations for 53 variables plus the response variable named
+„classe“ and an evaluation set with 20 observations for the same
+variables.</FONT></P>
+<P ALIGN=CENTER STYLE="margin-top: 0.3cm; margin-bottom: 0cm"><FONT FACE="Times New Roman, serif"><B>Model</B></FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">To
+train a model, I use 70% of the original training set for training
+the model and 30% of the original training for cross-validation
+purpose.</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">idx
+&lt;- createDataPartition(y=feature_set$classe, p=0.7, list=FALSE )</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">train
+&lt;- feature_set[idx,]</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">cross_valid
+&lt;- feature_set[-idx,]</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">Now
+I build 5 random forests with 150 trees each. I use parallel
+processing for speed up to build this model.</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">registerDoParallel()</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">x
+&lt;- train[-ncol(train)]</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">y
+&lt;- train$classe</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">rf
+&lt;- foreach(ntree=rep(150, 6), .combine=randomForest::combine,
+.packages='randomForest') %dopar% {randomForest(x, y, ntree=ntree) }</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">R
+can provide error reports for both training and cross-validation
+data.</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">predictions1
+&lt;- predict(rf, newdata=train)</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">confusionMatrix(predictions1,train$classe)</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">predictions2
+&lt;- predict(rf, newdata=cross_valid)</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">confusionMatrix(predictions2,cross_valid$classe)</FONT></P>
+<P ALIGN=CENTER STYLE="margin-top: 0.3cm; margin-bottom: 0cm"><FONT FACE="Times New Roman, serif"><B>Results</B></FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">As
+I got from the confusion matrix an overall accuracy of 0.9986 (95%
+intervall is [0.9973; 0.9994]), I continued with an evaluation of my
+model by applying it to the 20 observations from the eval_final
+dataset. To avoid any error during pre-processing, I started from the
+original evaluation-dataset, preserving only the columns that was
+used within the training data (column names of feature_set)</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">eval
+&lt;- evaluation</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">eval
+&lt;- eval[colnames(feature_set)[colnames(feature_set)!='classe']]</FONT></P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">answers
+&lt;- predict(rf, newdata=eval)</FONT></P>
+<P STYLE="margin-bottom: 0cm"><BR>
+</P>
+<P STYLE="margin-bottom: 0cm"><FONT FACE="Times New Roman, serif">The
+submission of the 20 results to coursera gave my a „correct“ flag
+for all 20 cases.</FONT></P>
+</BODY>
+</HTML>
